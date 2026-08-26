@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Vayal Fresh — Farm to Door</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<!-- Supabase client (loaded from CDN, exposes window.supabase.createClient) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="config-banner" class="hidden" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#BD3F27;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-family:'Work Sans',sans-serif;font-weight:600;">
+  ⚠ Add your Supabase project URL &amp; anon key at the top of <code>js/app.js</code> to connect the database — see README.md.
+</div>
+
+
+<div id="toast-wrap"></div>
+
+<!-- ============================================================
+     PUBLIC NAV
+     ============================================================ -->
+<nav class="nav" id="public-nav">
+  <div class="nav-inner">
+    <a class="brand" onclick="showView('view-landing')">
+      <span class="brand-mark">V</span>
+      <span class="brand-name">Vayal Fresh</span>
+    </a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="nav-links" id="nav-links">
+      <button class="nav-link" onclick="showView('view-landing')">Home</button>
+      <button class="nav-link" onclick="showView('view-shop')">Shop</button>
+      <button class="nav-link" id="nav-my-orders" onclick="requireLoginThen('view-my-orders')">My Orders</button>
+      <button class="nav-link" onclick="toggleCart(true)">Cart <span id="nav-cart-count" class="cart-badge hidden">0</span></button>
+      <button class="nav-link" id="nav-auth-btn" onclick="handleNavAuthClick()">Login</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================
+     LANDING VIEW
+     ============================================================ -->
+<section class="view active" id="view-landing">
+  <div class="hero">
+    <div class="hero-bg-zoom"></div>
+    <div class="container hero-content">
+      <span class="eyebrow"><span class="dot"></span> Harvested this week</span>
+      <h1><span>Fresh from the field,</span><span>straight to your door.</span></h1>
+      <p class="lede">Vayal Fresh connects you directly to farmers near you — real produce, picked at the right time, priced fairly for everyone.</p>
+      <div class="hero-actions">
+        <button class="btn" onclick="showView('view-shop')">Shop the harvest</button>
+        <button class="btn btn-ghost" onclick="requireLoginThen('view-my-orders')">Track an order</button>
+      </div>
+    </div>
+  </div>
+
+  <svg class="furrow" viewBox="0 0 1200 46" preserveAspectRatio="none"><path d="M0,23 Q100,6 200,23 T400,23 T600,23 T800,23 T1000,23 T1200,23" opacity="0.5"/><path d="M0,33 Q100,18 200,33 T400,33 T600,33 T800,33 T1000,33 T1200,33" opacity="0.25"/></svg>
+
+  <section class="section" id="featured-section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="section-tag">Today's stock</span>
+          <h2>This week's harvest</h2>
+        </div>
+        <button class="btn btn-outline" onclick="showView('view-shop')">View full shop →</button>
+      </div>
+      <div class="grid" id="featured-grid"></div>
+    </div>
+  </section>
+
+  <div class="story-band">
+    <div class="container">
+      <span class="section-tag" style="color:var(--gold)">Where it grows</span>
+      <h2>Grown across our partner fields</h2>
+      <p>Every listing is tied to a real farmer and a real field. When you order, they hear about it the same day — no middlemen, no guessing.</p>
+      <div class="story-stats">
+        <div class="story-stat"><b id="stat-farmers">42</b><span>Partner farmers</span></div>
+        <div class="story-stat"><b id="stat-products">—</b><span>Products listed</span></div>
+        <div class="story-stat"><b id="stat-orders">—</b><span>Orders delivered</span></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div>
+        <div class="brand" style="margin-bottom:14px;"><span class="brand-mark">V</span><span class="brand-name" style="color:#fff">Vayal Fresh</span></div>
+        <p style="max-width:260px; font-size:13.5px;">Farm-fresh produce, ordered online, delivered from the people who grow it.</p>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <a onclick="showView('view-shop')">All produce</a>
+        <a onclick="requireLoginThen('view-my-orders')">My orders</a>
+      </div>
+      <div>
+        <h4>Account</h4>
+        <a onclick="handleNavAuthClick()" id="footer-auth-link">Customer login</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <span>© 2026 Vayal Fresh. Built for farmers, by design.</span>
+      <a class="admin-entry" onclick="showView('view-auth-admin')">Farmer / Admin login →</a>
+    </div>
+  </footer>
+</section>
+
+<!-- ============================================================
+     SHOP VIEW
+     ============================================================ -->
+<section class="view" id="view-shop">
+  <div class="container" style="padding-top:36px; padding-bottom:70px;">
+    <div class="section-head">
+      <div>
+        <span class="section-tag">Full catalogue</span>
+        <h2>Shop fresh produce</h2>
+      </div>
+    </div>
+    <div class="shop-toolbar">
+      <div class="chip-row" id="category-chips"></div>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input type="text" id="shop-search" placeholder="Search produce..." oninput="renderShop()">
+      </div>
+    </div>
+    <div class="grid" id="shop-grid"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CUSTOMER AUTH VIEW
+     ============================================================ -->
+<section class="view" id="view-auth-customer">
+  <div class="auth-shell">
+    <div class="auth-visual">
+      <blockquote>"We used to sell at the mandi for whatever price we were given. Now our customers order straight from us."<cite>— A Vayal Fresh partner farmer</cite></blockquote>
+    </div>
+    <div class="auth-form-side">
+      <div class="auth-card">
+        <a class="back-home" onclick="showView('view-landing')">← Back to home</a>
+
+        <div id="customer-login-block">
+          <h2>Welcome back</h2>
+          <p class="auth-sub">Log in to order and track your produce.</p>
+          <form id="customer-login-form" onsubmit="return handleCustomerLogin(event)">
+            <div class="field"><label>Phone number</label><input type="tel" id="cl-phone" required placeholder="9876543210"></div>
+            <div class="field"><label>Password</label><input type="password" id="cl-password" required placeholder="••••••••"></div>
+            <div class="form-error" id="cl-error"></div>
+            <button class="btn btn-block" type="submit">Log in</button>
+          </form>
+          <p class="auth-switch">New here? <button class="link-btn" onclick="toggleCustomerAuthMode()">Create an account</button></p>
+        </div>
+
+        <div id="customer-signup-block" class="hidden">
+          <h2>Create your account</h2>
+          <p class="auth-sub">Takes less than a minute.</p>
+          <form id="customer-signup-form" onsubmit="return handleCustomerSignup(event)">
+            <div class="field"><label>Full name</label><input type="text" id="cs-name" required placeholder="Your name"></div>
+            <div class="field"><label>Phone number</label><input type="tel" id="cs-phone" required placeholder="9876543210"></div>
+            <div class="field"><label>Delivery address</label><textarea id="cs-address" required placeholder="House no, street, city, pincode"></textarea></div>
+            <div class="field"><label>Password</label><input type="password" id="cs-password" required placeholder="Create a password"></div>
+            <div class="form-error" id="cs-error"></div>
+            <button class="btn btn-block" type="submit">Create account</button>
+          </form>
+          <p class="auth-switch">Already have an account? <button class="link-btn" onclick="toggleCustomerAuthMode()">Log in</button></p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ADMIN AUTH VIEW
+     ============================================================ -->
+<section class="view" id="view-auth-admin">
+  <div class="auth-shell">
+    <div class="auth-visual admin-visual">
+      <blockquote>"Every order reaches me the moment it's placed. I confirm it, and that's it."<cite>— Vayal Fresh admin panel</cite></blockquote>
+    </div>
+    <div class="auth-form-side">
+      <div class="auth-card">
+        <a class="back-home" onclick="showView('view-landing')">← Back to home</a>
+        <h2>Farmer / Admin login</h2>
+        <p class="auth-sub">Manage produce and confirm customer orders.</p>
+        <form id="admin-login-form" onsubmit="return handleAdminLogin(event)">
+          <div class="field"><label>Admin username</label><input type="text" id="al-username" required placeholder="admin"></div>
+          <div class="field"><label>Password</label><input type="password" id="al-password" required placeholder="••••••••"></div>
+          <div class="form-error" id="al-error"></div>
+          <button class="btn btn-block" type="submit">Enter admin panel</button>
+        </form>
+        <div class="demo-hint">Demo login — username: <b>admin</b> · password: <b>admin123</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     MY ORDERS VIEW (customer)
+     ============================================================ -->
+<section class="view" id="view-my-orders">
+  <div class="container" style="padding-top:36px; padding-bottom:70px; max-width:720px;">
+    <div class="section-head">
+      <div><span class="section-tag">Your account</span><h2>My orders</h2></div>
+    </div>
+    <div class="orders-list" id="my-orders-list"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ORDER SUCCESS VIEW
+     ============================================================ -->
+<section class="view" id="view-order-success">
+  <div class="checkout-wrap">
+    <div class="order-ticket" id="order-success-body"></div>
+    <div class="torn-edge"></div>
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-outline btn-block" onclick="showView('view-shop')">Keep shopping</button>
+      <button class="btn btn-block" onclick="showView('view-my-orders')">View my orders</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ADMIN DASHBOARD VIEW
+     ============================================================ -->
+<section class="view" id="view-admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-brand"><span class="brand-mark">V</span><span class="brand-name" style="font-size:16px;">Vayal Admin</span></div>
+      <button class="admin-nav-item active" data-tab="overview" onclick="switchAdminTab('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Overview
+      </button>
+      <button class="admin-nav-item" data-tab="products" onclick="switchAdminTab('products')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Products
+      </button>
+      <button class="admin-nav-item" data-tab="orders" onclick="switchAdminTab('orders')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2l1.5 4h9L18 2M4 8h16l-1.5 12h-13z"/></svg>
+        Orders <span class="badge-count hidden" id="sidebar-order-badge">0</span>
+      </button>
+      <button class="btn btn-ghost" onclick="logout()" style="margin-top:14px;">Log out</button>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn btn-outline btn-sm mobile-admin-toggle" onclick="document.getElementById('admin-sidebar').classList.toggle('open')">☰</button>
+          <h2 id="admin-tab-title">Overview</h2>
+        </div>
+        <div class="bell-wrap">
+          <button class="bell-btn" id="bell-btn" onclick="toggleNotifPanel()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <span class="bell-badge hidden" id="bell-badge">0</span>
+          </button>
+          <div class="notif-panel" id="notif-panel"></div>
+        </div>
+      </div>
+      <div class="admin-content">
+
+        <div id="admin-tab-overview">
+          <div class="stat-cards">
+            <div class="stat-card"><b id="ov-total-products">0</b><span>Products listed</span></div>
+            <div class="stat-card"><b id="ov-pending-orders">0</b><span>Pending orders</span></div>
+            <div class="stat-card"><b id="ov-confirmed-orders">0</b><span>Confirmed orders</span></div>
+            <div class="stat-card"><b id="ov-revenue">₹0</b><span>Confirmed revenue</span></div>
+          </div>
+          <h3 style="margin-bottom:14px;">Recent orders</h3>
+          <div id="ov-recent-orders"></div>
+        </div>
+
+        <div id="admin-tab-products" class="hidden">
+          <div class="admin-toolbar">
+            <span class="text-muted" id="products-count-label">0 products</span>
+            <button class="btn" onclick="openProductModal()">+ Add product</button>
+          </div>
+          <div class="product-admin-grid" id="admin-products-grid"></div>
+        </div>
+
+        <div id="admin-tab-orders" class="hidden">
+          <div class="admin-toolbar">
+            <div class="chip-row" id="order-status-chips"></div>
+          </div>
+          <div id="admin-orders-list"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CART DRAWER
+     ============================================================ -->
+<div class="cart-overlay" id="cart-overlay" onclick="toggleCart(false)"></div>
+<div class="cart-drawer" id="cart-drawer">
+  <div class="cart-head">
+    <h3 style="margin:0;">Your cart</h3>
+    <button class="modal-close" onclick="toggleCart(false)">×</button>
+  </div>
+  <div class="cart-items" id="cart-items-wrap"></div>
+  <div class="cart-foot" id="cart-foot"></div>
+</div>
+
+<!-- ============================================================
+     PRODUCT MODAL (admin add/edit)
+     ============================================================ -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="product-modal-title" style="margin:0;">Add product</h3>
+      <button class="modal-close" onclick="closeProductModal()">×</button>
+    </div>
+    <form id="product-form" onsubmit="return saveProduct(event)">
+      <input type="hidden" id="pf-id">
+      <label class="img-upload" id="pf-upload-label">
+        <img id="pf-preview" class="hidden">
+        <span id="pf-upload-text">📷 Click to add a photo</span>
+        <input type="file" id="pf-image" accept="image/*" onchange="handleProductImage(event)">
+      </label>
+      <div class="spacer-sm"></div>
+      <div class="field"><label>Product name</label><input type="text" id="pf-name" required placeholder="e.g. Sona Masoori Rice"></div>
+      <div class="field-row">
+        <div class="field"><label>Category</label>
+          <select id="pf-category">
+            <option>Grains</option><option>Vegetables</option><option>Greens</option><option>Spices</option><option>Pulses</option><option>Oils</option>
+          </select>
+        </div>
+        <div class="field"><label>Unit</label>
+          <select id="pf-unit"><option>kg</option><option>bunch</option><option>litre</option><option>dozen</option></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Price (₹)</label><input type="number" id="pf-price" min="0" step="0.5" required placeholder="60"></div>
+        <div class="field"><label>Stock available</label><input type="number" id="pf-stock" min="0" required placeholder="50"></div>
+      </div>
+      <div class="field"><label>Description</label><textarea id="pf-desc" placeholder="Short description for customers"></textarea></div>
+      <button class="btn btn-block" type="submit">Save product</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     BUY NOW / DIRECT BILLING MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="buynow-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 style="margin:0;">⚡ Buy now</h3>
+      <button class="modal-close" onclick="closeBuyNowModal()">×</button>
+    </div>
+    <div class="buynow-product" id="buynow-product-block"></div>
+
+    <div class="buynow-row">
+      <label style="font-size:12.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--soil);">Quantity</label>
+      <div class="qty-stepper">
+        <button type="button" onclick="changeBuyNowQty(-1)">−</button>
+        <span id="buynow-qty">1</span>
+        <button type="button" onclick="changeBuyNowQty(1)">+</button>
+      </div>
+    </div>
+
+    <div class="field"><label>Deliver to</label><textarea id="buynow-address"></textarea></div>
+
+    <div class="buynow-bill" id="buynow-bill"></div>
+    <div class="cod-note">💵 Pay on delivery — no online payment needed for this demo.</div>
+    <button class="btn btn-buynow btn-block" onclick="confirmBuyNow()">Place order — Buy now</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIRM DIALOG (generic)
+     ============================================================ -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box" style="max-width:380px;">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p class="text-muted" id="confirm-message"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="confirm-action-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script src="js/app.js"></script>
+</body>
+</html>
